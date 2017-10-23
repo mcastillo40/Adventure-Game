@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include <unistd.h>
 
 typedef enum {false, true} bool;
@@ -94,6 +95,10 @@ int main() {
 	char tempID[20];		  // Use temp to convert int to string
 	char folderName[80];	  // Folder to hold rooms
 	char roomNames[9][50];    // The name of the rooms that may be chosen in the game
+	struct Room* houseRooms;
+	houseRooms = malloc(10 * sizeof(struct Room));
+
+	srand(time(NULL));
 
 	// Place name of rooms in array
 	strcpy(roomNames[0], "Whacky Room");
@@ -106,9 +111,34 @@ int main() {
 	strcpy(roomNames[7], "All you can eat Room");
 	strcpy(roomNames[8], "Hat collection Room");
 	strcpy(roomNames[9], "Another Room");
+	
+	// Initialize each room with a name and room type
+	int i;
+	for (i = 0; i < 10; ++i) {
+		int r = rand() % 10;
+		
+		while (roomNames[r] == ""){
+			r = rand() % 10; 
+			//houseRooms[i].name = roomNames[r]; 
+		}
+		
+		printf("Name: %s\n", roomNames[r]);
 
-	printf("room 1: %s\n", roomNames[0]);
-	printf("room 2: %s\n", roomNames[1]);
+		houseRooms[i].name = roomNames[r];
+		strcpy(roomNames[r], ""); 
+
+//		int count;
+//		for (count = 0; count <= i; ++count){			
+//		}
+	}
+
+	int count; 
+	for (count = 0; count < 10; ++count) {
+		printf("Room %d: %s\n", count, houseRooms[count].name); 
+	}
+
+	//printf("room 1: %s\n", roomNames[0]);
+	//printf("room 2: %s\n", roomNames[1]);
 	
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
@@ -118,6 +148,9 @@ int main() {
 	int result = mkdir(folderName, 0755);
 	printf("Complete: %d\n", result);
 	printf("My process ID : %d\n", processID);
-
+	
+	// Delete folder (Create loop to delete all files within folder first openDir() and closeDir())
+//	rmdir(folderName);
+	free(houseRooms);
 	return 0;
 }
