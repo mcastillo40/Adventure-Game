@@ -18,9 +18,9 @@ typedef enum {false, true} bool;
 
 struct Room {
 	int id;
-    char* name;
-	int connectionCount;
-	struct room* outBoundConnections[6];
+	char* name; 
+	int outboundConnectionCount;
+	struct Room* outboundRoomConnection; 
 };
 
 // Create all connections in graph
@@ -38,11 +38,11 @@ struct Room {
 // Adds a random, valid outbound connection from a Room to another Room
 //void AddRandomConnection()  
 //{
-//	Room A;  // Maybe a struct, maybe global arrays of ints
-//    Room B;
+//	struct Room A;  // Maybe a struct, maybe global arrays of ints
+//	struct Room B;
 
 //    while(true)
-//    {
+//   {
 //	    A = GetRandomRoom();
 
 //        if (CanAddConnectionFrom(A) == true)
@@ -55,8 +55,8 @@ struct Room {
 //    }
 //    while(CanAddConnectionFrom(B) == false || IsSameRoom(A, B) == true || ConnectionAlreadyExists(A, B) == true);
 
-//    ConnectRoom(A, B);  // TODO: Add this connection to the real variables, 
-//    ConnectRoom(B, A);  //  because this A and B will be destroyed when this function terminates
+    //ConnectRoom(A, B);  // TODO: Add this connection to the real variables, 
+    //ConnectRoom(B, A);  //  because this A and B will be destroyed when this function terminates
 //}
 
 // Returns a random Room, does NOT validate if connection can be added
@@ -80,18 +80,28 @@ struct Room {
 // Connects Rooms x and y together, does not check if this connection is valid
 //void ConnectRoom(Room x, Room y) 
 //{
-
+//
 //}
 
 // Returns true if Rooms x and y are the same Room, false otherwise
-bool IsSameRoom(const struct Room* x, const struct Room* y) 
-{
-    return x == y; 
-}
+//bool IsSameRoom(Room x, Room y) 
+//{
+//    return false;
+//}
 
-int main() { 
-	int result = mkdir("testFolder", 0755);
-	printf("New: %d\n", result);
+int main() {
+	int processID = getpid(); // Obtain process ID number
+	char tempID[20];		  // Use temp to convert int to string
+	char folderName[80];	  // Folder to hold rooms
+	
+	// Convert process ID into string and concatenate into folder name
+	sprintf(tempID, "%d", processID);
+	strcpy(folderName, "castimat.rooms.");
+//	strcat(folderName, tempID);
+
+	int result = mkdir(folderName, 0755);
+	printf("Complete: %d\n", result);
+	printf("My process ID : %d\n", processID);
 
 	return 0;
 }
