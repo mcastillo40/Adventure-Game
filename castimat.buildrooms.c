@@ -17,8 +17,8 @@
 typedef enum {false, true} bool;
 
 struct Room {
-	int id;
 	char* name; 
+    char* type;
 	int outboundConnectionCount;
 	struct Room* outboundRoomConnection; 
 };
@@ -93,11 +93,27 @@ int main() {
 	int processID = getpid(); // Obtain process ID number
 	char tempID[20];		  // Use temp to convert int to string
 	char folderName[80];	  // Folder to hold rooms
+	char roomNames[9][50];    // The name of the rooms that may be chosen in the game
+
+	// Place name of rooms in array
+	strcpy(roomNames[0], "Whacky Room");
+	strcpy(roomNames[1], "Jumpy Room");
+	strcpy(roomNames[2], "Coffee Room");
+	strcpy(roomNames[3], "Where Am I Room");
+	strcpy(roomNames[4], "Rick's Garage");
+	strcpy(roomNames[5], "This Room");
+	strcpy(roomNames[6], "Change Room");
+	strcpy(roomNames[7], "All you can eat Room");
+	strcpy(roomNames[8], "Hat collection Room");
+	strcpy(roomNames[9], "Another Room");
+
+	printf("room 1: %s\n", roomNames[0]);
+	printf("room 2: %s\n", roomNames[1]);
 	
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
 	strcpy(folderName, "castimat.rooms.");
-//	strcat(folderName, tempID);
+	//	strcat(folderName, tempID);
 
 	int result = mkdir(folderName, 0755);
 	printf("Complete: %d\n", result);
