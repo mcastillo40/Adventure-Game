@@ -20,7 +20,7 @@ struct Room {
 	char* name; 
     char* type;
 	int outboundConnectionCount;
-	struct Room* outboundRoomConnection; 
+	struct Room* outboundRoomConnection[6]; 
 };
 
 /*********************************************************************
@@ -143,7 +143,19 @@ void setRoomType(struct Room* houseRooms, char **roomType){
 }
 
 /*********************************************************************
-*
+*                 initRoomConnectionCount(Room*)
+* @param houseRooms
+* @return: void
+* Description: Initialize each room to only have 0 connections
+**********************************************************************/
+void initRoomConnectionCount(struct Room* houseRooms){
+	int i;
+	for(i = 0; i < 7; ++i) {
+		houseRooms[i].outboundConnectionCount = 0; 
+	}
+}
+
+/*********************************************************************
 *                 freeOptions(char**, int)
 * @param option
 * @param count
@@ -159,85 +171,134 @@ void freeOptions(char **option, int count){
 	free(option);
 }
 
-
-
-
-// Create all connections in graph
-//while (IsGraphFull() == false)
-//{
-//	  AddRandomConnection();
-//}
-
 // Returns true if all rooms have 3 to 6 outbound connections, false otherwise
-//bool IsGraphFull()  
-//{
-//    return true;
-//}
-
-// Adds a random, valid outbound connection from a Room to another Room
-//void AddRandomConnection(rr(DynArr *)
-//
-//* @param v
-//
-//* @return: void
-//
-//* Description: Deallocates memory from data array within the passed
-//
-//*   structure.
-//
-//*********************************************************************/
-//{
-//	struct Room A;  // Maybe a struct, maybe global arrays of ints
-//	struct Room B;
-
-//    while(true)
-//   {
-//	    A = GetRandomRoom();
-
-//        if (CanAddConnectionFrom(A) == true)
-//		    break;
-//    }
-
-//    do
-//    {
-//        B = GetRandomRoom();
-//    }
-//    while(CanAddConnectionFrom(B) == false || IsSameRoom(A, B) == true || ConnectionAlreadyExists(A, B) == true);
-
-    //ConnectRoom(A, B);  // TODO: Add this connection to the real variables, 
-    //ConnectRoom(B, A);  //  because this A and B will be destroyed when this function terminates
-//}
+bool IsGraphFull(struct Room* houseRooms)  
+{
+	int i;
+	for (i = 0; i < 7; ++i) {
+		if (houseRooms[i].outboundConnectionCount < 3)			
+			return false; 
+	}
+   	return true;
+}
 
 // Returns a random Room, does NOT validate if connection can be added
-//Room GetRandomRoom()
-//{
-//    return Room;
-//}
+struct Room getRandomRoom(struct Room* houseRoom)
+{
+//    int randomNum = rand() % 7;
+	
+//	printf("randomRoom: %s\n", houseRoom[randomNum].name);
+	
+	//return houseRoom;
+
+	return houseRoom[0];
+}
 
 // Returns true if a connection can be added from Room (< 6 outbound connections), false otherwise
-//bool CanAddConnectionFrom(Room x) 
-//{
-//    return true;
-//}
+bool CanAddConnectionFrom(struct Room x) 
+{
+	if (x.outboundConnectionCount < 6) {
+//		printf("ADD %s\n", x.name);
+		return true;
+	}
+	else {
+//		printf("ADD %s\n", x.name);
+		return false; 
+	}
+}
 
 // Returns true if a connection from Room x to Room y already exists, false otherwise
-//bool ConnectionAlreadyExists(x, y)
-//{
-//    return false;
-//}
+bool ConnectionAlreadyExists(struct Room x, struct Room y)
+{
+    int i;
+
+	for (i = 0; i < x.outboundConnectionCount; ++i){
+		if (x.outboundRoomConnection[i]->name == y.name)
+			return true; 
+	}
+	
+	return false;
+}
 
 // Connects Rooms x and y together, does not check if this connection is valid
-//void ConnectRoom(Room x, Room y) 
-//{
-//
-//}
+void ConnectRoom(struct Room* x, int a, int b) 
+{
+	// Obtain the number of connections per room
+	int xConnectionCount = x[a].outboundConnectionCount;
+	//int yConnectionCount = y[b].outboundConnectionCount;
+	
+	// Link each room to one another
+	*x->outboundRoomConnection[xConnectionCount] = x[b]; 
+	//y->outboundRoomConnection[yConnectionCount] = x; 
+	
+	// Increase connection count for each room by 1
+	x->outboundConnectionCount++;
+//	y->outboundConnectionCount++;
+}
 
 // Returns true if Rooms x and y are the same Room, false otherwise
-//bool IsSameRoom(Room x, Room y) 
-//{
-//    return false;
-//}
+bool IsSameRoom(struct Room x, struct Room y) 
+{
+    if (x.name == y.name)
+		return true;
+	else
+		return false; 
+}
 
+// Adds a random, valid outbound connection from a Room to another Room
+void AddRandomConnection(struct Room* houseRooms)
+{
+	struct Room A;  
+	int randomRoomA;
+	struct Room B;
+	int randomRoomB;
+
+    while(true)
+   	{
+	    //A = getRandomRoom(houseRooms);
+		
+		randomRoomA = rand() % 7;
+		A = houseRooms[randomRoomA];
+		
+//		printf("name: %s\n", A.name);
+
+        if (CanAddConnectionFrom(A))
+		    break;
+    }
+//		printf("TEST1\n");
+    do
+    {
+        randomRoomB = rand() % 7;
+		B = houseRooms[randomRoomB];
+//		printf("TEST2\n");
+	//	B = GetRandomRoom(houseRooms);
+    }  while(CanAddConnectionFrom(B) == false || IsSameRoom(A, B) == true || ConnectionAlreadyExists(A, B) == true);
+	
+//	printf("TEST3\n");
+    
+//	ConnectRoom(houseRooms, randomRoomA, randomRoomB);  // TODO: Add this connection to the real variables, 
+//  ConnectRoom(houseRooms, randomRoomB, randomRoomA);  //  because this A and B will be destroyed when this function terminates
+    int aCount = houseRooms[randomRoomA].outboundConnectionCount;
+	int bCount = houseRooms[randomRoomB].outboundConnectionCount;
+	
+	houseRooms[randomRoomA].outboundRoomConnection[aCount] = &houseRooms[randomRoomB];
+	houseRooms[randomRoomB].outboundRoomConnection[bCount] = &houseRooms[randomRoomA];
+	
+	houseRooms[randomRoomA].outboundConnectionCount++;
+	houseRooms[randomRoomB].outboundConnectionCount++;
+}
+
+void PrintRoomOutboundConnections(struct Room* input)
+{
+	printf("The rooms connected to (%s/%s) are:\n", input->name, input->type);
+
+    int i;
+    for (i = 0; i < input->outboundConnectionCount; i++)
+	    printf("  (%s/%s)\n", input->outboundRoomConnection[i]->name, input->outboundRoomConnection[i]->type);
+
+	printf("\n");
+	return;
+}
 
 int main() {
 	int processID = getpid();   // Obtain process ID number
@@ -259,6 +320,8 @@ int main() {
 	char **roomType;           
 	roomType = malloc(3 * sizeof(char*));
 	initRoomType(roomType);
+
+ 	initRoomConnectionCount(houseRooms);
 	
 	// Used to randomize room names and types
 	srand(time(NULL));
@@ -271,6 +334,7 @@ int main() {
 	for (count = 0; count < 7; ++count) {
 		printf("Room Name %d: %s\n", count, houseRooms[count].name); 
 		printf("Room Type %d: %s\n", count, houseRooms[count].type);
+		printf("Room Connection %d: %d\n\n", count, houseRooms[count].outboundConnectionCount);
 	}
 
 	// Convert process ID into string and concatenate into folder name
@@ -280,8 +344,17 @@ int main() {
 
 	int result = mkdir(folderName, 0755);
 	printf("Complete: %d\n", result);
-	printf("My process ID : %d\n", processID);
+//	printf("My process ID : %d\n", processID);
+
+	// Create all connections in graph
+	while (IsGraphFull(houseRooms) == false)
+	{
+		  AddRandomConnection(houseRooms);
+	}
 	
+	for (count = 0; count < 7; ++count)
+		PrintRoomOutboundConnections(&houseRooms[count]);
+
 	// Delete folder (Create loop to delete all files within folder first openDir() and closeDir())
 	//	rmdir(folderName);
 	
