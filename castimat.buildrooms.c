@@ -1,9 +1,9 @@
 /*
+ *
  * CS 344 Assignment 2
  * Name: Matthew Castillo
  * Date: 10/22/17
- * Description: The program implements a dynamic array to initialize 
- *  a stack, bag, ordered bag, heap, and iterator
+ * Description: 
 */
 #include <stdlib.h>
 #include <stdio.h>
@@ -22,6 +22,11 @@ struct Room {
     char* type;
 	int outboundConnectionCount;
 	struct Room* outboundRoomConnection; 
+};
+
+struct roomType {
+	int size;
+	char* [][];
 };
 
 // Create all connections in graph
@@ -90,13 +95,16 @@ struct Room {
 //    return false;
 //}
 
-int main() {
-	int processID = getpid(); // Obtain process ID number
-	char tempID[20];		  // Use temp to convert int to string
-	char folderName[80];	  // Folder to hold rooms
-	char roomNames[9][50];    // The name of the rooms that may be chosen in the game
-	struct Room* houseRooms;
-	houseRooms = malloc(10 * sizeof(struct Room));
+int main() {rand
+	int processID = getpid();   // Obtain process ID number
+	char tempID[20];		    // Use temp to convert int to string
+	char folderName[80];	    // Folder to hold rooms
+	char roomNames[10][50];     // The name of the rooms that may be chosen in the game
+	char roomType[3][15];	    // The room types in the game	
+	bool startRoomUsed = false; // Used to validate if start room was used
+	bool endRoomUsed = false;	// Used to validate if end room was used
+	struct Room* houseRooms; 
+	houseRooms = malloc(7 * sizeof(struct Room));
 
 	srand(time(NULL));
 
@@ -111,35 +119,90 @@ int main() {
 	strcpy(roomNames[7], "All you can eat Room");
 	strcpy(roomNames[8], "Hat collection Room");
 	strcpy(roomNames[9], "Another Room");
-	
+
+	// Place type of rooms 
+	strcpy(roomType[0], "MID_ROOM");
+	strcpy(roomType[1], "START_ROOM");
+	strcpy(roomType[2], "END_ROOM");
+
 	// Initialize each room with a name and room type
 	int i;
-	for (i = 0; i < 10; ++i) {
-		int r = rand() % 10;
-		
-		while (roomNames[r] == ""){
-			r = rand() % 10; 
-			//houseRooms[i].name = roomNames[r]; 
+	for (i = 0; i < 7; ++i) {
+		int randomRoomName;
+				
+		// Initialize 1st room's name and type
+		if (i == 0) {
+			randomRoomName = rand() % 10;
+			randomRoomType = rand() % 3;
+			
+			if (randomRoomType == 1)
+				startRoomUsed = true;
+
+			if (randomRoomType == 2)
+				endRoomUsed = true; 
+
+			houseRooms[i].name = roomNames[randomRoomName];
+			houseRooms[i].type = roomType[randomRoomType]; 
 		}
-		
-		printf("Name: %s\n", roomNames[r]);
+		else { // Initialize the final 6 room's names and types and ensure that the name is unique
+			
+			bool usedName = false; // Will change to true if room name has been used
+			bool usedType = false; // Will change to true if room type is either START_ROOM OR END_ROOM
+				
+			do {
+				usedName = false; 
+				
+				randomRoomName = rand() % 10; 
+				houseRooms[i].name = roomNames[randomRoomName];
+				
+				// Check whether the room name has been used
+				// If used change usedName to true
+				int count;
+				for (count = 0; count < i; ++count){
+					if (houseRooms[i].name == houseRooms[count].name){
+						usedName = true; 
+					}
+				}
 
-		houseRooms[i].name = roomNames[r];
-		strcpy(roomNames[r], ""); 
+			} while (usedName);
 
-//		int count;
-//		for (count = 0; count <= i; ++count){			
-//		}
+			do {
+				usedType = false;
+
+				randomRoomType = rand() % 3;
+				houseRooms[i].type = roomType[randomRoomType];
+
+				if (houseRooms[i].type == roomType[1] || houseRooms[i].type == roomType[2])
+					usedType = true; 
+				
+			} while (usedType);
+
+		} 
 	}
 
-	int count; 
-	for (count = 0; count < 10; ++count) {
-		printf("Room %d: %s\n", count, houseRooms[count].name); 
+	do {
+		randomRoomType = rand() % 3;
+			
+		if (randomRoomType == 1)
+			startRoomUsed = true;
+
+		if (randomRoomType == 2)
+			endRoomUsed = true; 
+
+		int count;
+		for (count = 0; count < 7; ++count)
+		{
+			houseRooms[count].type = roomType[randomRoomType]; 	
+		}
+
+	} while (!startRoomUsed || !endRoomUsed);
+
+	int count = 0; 
+	for (count = 0; count < 7; ++count) {
+		printf("Room Name %d: %s\n", count, houseRooms[count].name); 
+		printf("Room Type %d: %s\n", count, houseRooms[count].type);
 	}
 
-	//printf("room 1: %s\n", roomNames[0]);
-	//printf("room 2: %s\n", roomNames[1]);
-	
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
 	strcpy(folderName, "castimat.rooms.");
