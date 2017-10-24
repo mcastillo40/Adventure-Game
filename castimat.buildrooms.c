@@ -6,6 +6,7 @@
 */
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -23,6 +24,37 @@ struct Room {
 	struct Room* outboundRoomConnection[6]; 
 };
 
+void initRoomInfo(char **roomInfo, struct Room* thisRoom){
+	char connectionCount[20]; 
+	int i;
+	for (i = 0; i < 7; ++i){
+		roomInfo[i] = malloc(5000 * sizeof(char*));
+		memset(roomInfo[i], '\0', 5000);
+
+		strcpy(roomInfo[i], "ROOM NAME: ");
+		strcat(roomInfo[i], thisRoom[i].name);
+		strcat(roomInfo[i], "\n");
+
+		int count;
+	    for (count = 0; count < thisRoom[i].outboundConnectionCount; count++){
+			int counter = count + 1; 
+			strcat(roomInfo[i], "CONNECTION ");
+			
+			sprintf(connectionCount, "%d", counter);
+			strcat(roomInfo[i], " ");
+			strcat(roomInfo[i], connectionCount);
+			strcat(roomInfo[i], ": ");
+			strcat(roomInfo[i], thisRoom[i].outboundRoomConnection[count]->name);
+			strcat(roomInfo[i], "\n");
+			
+		}
+
+		strcat(roomInfo[i], "ROOM TYPE: ");
+		strcat(roomInfo[i], thisRoom[i].type);
+		strcat(roomInfo[i], "\n");
+	}
+}
+
 /*********************************************************************
 *                 initRoomName(char**)
 * @param roomName
@@ -30,7 +62,7 @@ struct Room {
 * Description: Allocate memory for each room name then initialize 
 * 	the room names
 *********************************************************************/
-void initRoomName(char ** roomName){
+void initRoomName(char **roomName){
 	int i;
 	for (i = 0; i < 10; ++i) {
 		roomName[i] = malloc(20 * sizeof(char*));
@@ -267,13 +299,54 @@ void PrintRoomOutboundConnections(struct Room* input)
 	return;
 }
 
+void createFiles(struct Room* differentRooms, char* directory){
+	int file_descriptor;
+	char file[7][255];
+	ssize_t nread, nwritten;
+	char readBuffer[32];
+	int files = 7;
+	char fileName[7][200];	
+	char fileID[200];
+	
+	char **roomInfo;
+	roomInfo = malloc(7 * sizeof(char*));
+	initRoomInfo(roomInfo, differentRooms);
+	
+	int i;
+	for (i = 0; i < files; ++i){
+	    strcpy(fileName[i], "/file");
+		sprintf(fileID, "%d", i);
+		
+		strcat(fileName[i], fileID);
+		
+		strcpy(file[i], directory);
+		strcat(file[i], fileName[i]);
+		
+		strcat(file[i], ".txt");
+
+		file_descriptor = open(file[i], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+
+		if (file_descriptor == -1)	{
+			printf("Hull breach - open() failed on \"%s\"\n", file[0]);
+			perror("In main()");
+			exit(1);
+		}
+
+			nwritten = write(file_descriptor, roomInfo[i], strlen(roomInfo[i]) * sizeof(char)); 
+		}
+
+	freeOptions(roomInfo, 7);
+
+}
+
 int main() {
 	int processID = getpid();   // Obtain process ID number
 	char tempID[20];		    // Use temp to convert int to string
 	char folderName[80];	    // Folder to hold rooms
 	bool startRoomUsed = false; // Used to validate if start room was used
 	bool endRoomUsed = false;	// Used to validate if end room was used
-	
+
+
 	// Initialize memory for number of rooms
 	struct Room* houseRooms; 
 	houseRooms = malloc(7 * sizeof(struct Room));
@@ -297,12 +370,12 @@ int main() {
 	
 	setRoomType(houseRooms, roomType);
 
-	int count = 0; 
-	for (count = 0; count < 7; ++count) {
-		printf("Room Name %d: %s\n", count, houseRooms[count].name); 
-		printf("Room Type %d: %s\n", count, houseRooms[count].type);
-		printf("Room Connection %d: %d\n\n", count, houseRooms[count].outboundConnectionCount);
-	}
+//	int count = 0; 
+//	for (count = 0; count < 7; ++count) {
+//		printf("Room Name %d: %s\n", count, houseRooms[count].name); 
+//		printf("Room Type %d: %s\n", count, houseRooms[count].type);
+//		printf("Room Connection %d: %d\n\n", count, houseRooms[count].outboundConnectionCount);
+//	}
 
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
@@ -310,7 +383,7 @@ int main() {
 	//	strcat(folderName, tempID);
 
 	int result = mkdir(folderName, 0755);
-	printf("Complete: %d\n", result);
+//	printf("Complete: %d\n", result);
 //	printf("My process ID : %d\n", processID);
 
 	// Create all connections in graph
@@ -319,8 +392,10 @@ int main() {
 		  AddRandomConnection(houseRooms);
 	}
 	
-	for (count = 0; count < 7; ++count)
-		PrintRoomOutboundConnections(&houseRooms[count]);
+//	for (count = 0; count < 7; ++count)
+//		PrintRoomOutboundConnections(&houseRooms[count]);
+	
+	createFiles(houseRooms, folderName);
 
 	// Delete folder (Create loop to delete all files within folder first openDir() and closeDir())
 	//	rmdir(folderName);
