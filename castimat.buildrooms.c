@@ -345,7 +345,10 @@ int main() {
 	char folderName[80];	    // Folder to hold rooms
 	bool startRoomUsed = false; // Used to validate if start room was used
 	bool endRoomUsed = false;	// Used to validate if end room was used
+//	int result = mkdir(folderName, 0755);
 
+	// Used to randomize room names and types
+	srand(time(NULL));
 
 	// Initialize memory for number of rooms
 	struct Room* houseRooms; 
@@ -363,9 +366,6 @@ int main() {
 
  	initRoomConnectionCount(houseRooms);
 	
-	// Used to randomize room names and types
-	srand(time(NULL));
-	
 	setRoomName(houseRooms, roomNames);
 	
 	setRoomType(houseRooms, roomType);
@@ -380,11 +380,12 @@ int main() {
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
 	strcpy(folderName, "castimat.rooms.");
-	//	strcat(folderName, tempID);
-
+	strcat(folderName, tempID);
+    
 	int result = mkdir(folderName, 0755);
-//	printf("Complete: %d\n", result);
-//	printf("My process ID : %d\n", processID);
+
+	//printf("Complete: %d\n", result);
+	//printf("My process ID : %d\n", processID);
 
 	// Create all connections in graph
 	while (IsGraphFull(houseRooms) == false)
@@ -392,8 +393,8 @@ int main() {
 		  AddRandomConnection(houseRooms);
 	}
 	
-//	for (count = 0; count < 7; ++count)
-//		PrintRoomOutboundConnections(&houseRooms[count]);
+	//	for (count = 0; count < 7; ++count)
+	//		PrintRoomOutboundConnections(&houseRooms[count]);
 	
 	createFiles(houseRooms, folderName);
 
