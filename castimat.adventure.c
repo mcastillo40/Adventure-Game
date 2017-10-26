@@ -18,20 +18,101 @@
 #include <fcntl.h>
 #include <assert.h>
 
+typedef enum {false, true} bool;
+
+struct Connection {
+	char conName[30]; 
+};
+
 struct Room {
 	char* name; 
     char* type;
     int outboundConnectionCount;
-    struct Room* outboundRoomConnection[6]; 
+    struct Connection diffConnections[6];
 };
 
-void setRoomName(struct Room* houseRoom, char *roomName, int roomNum){
-	houseRoom[roomNum].name = roomName;
+// Set the first room as the starting room
+struct Room start (struct Room* thisRoom){
+	int i;
+	for (i = 0; i < 7; i++) {
+		if(strncmp(thisRoom[i].type, "START_ROOM", 5) == 0){
+			return thisRoom[i];
+		}
+	}
 }
 
-void setRoomType(struct Room* houseRoom, char *roomType, int roomNum){
-	houseRoom[roomNum].type = roomType;
+// Set the last room as the end room
+struct Room end (struct Room* thisRoom){
+	int i;
+	for (i = 0; i < 7; i++) {
+		if(strncmp(thisRoom[i].type, "END_ROOM", 5) == 0){
+			return thisRoom[i];
+		}
+	}
 }
+
+void showConnections(struct Room thisRoom){
+	int last = thisRoom.outboundConnectionCount - 1;
+
+	int i;
+	for (i = 0; i < thisRoom.outboundConnectionCount; ++i){
+		if (i == 0)
+			printf("POSSIBLE CONNECTIONS: %s,", thisRoom.diffConnections[i].conName);
+		else if (i < last - 1)
+			printf(" %s,", thisRoom.diffConnections[i].conName);
+		else if (i == last)
+			printf(" %s.\n", thisRoom.diffConnections[i].conName);
+	}
+}
+
+bool validChoice(struct Room thisRoom, char* selection){
+	int i;
+	printf("select: %s\n", selection);
+	for (i = 0; i < thisRoom.outboundConnectionCount; ++i){
+		if (strncmp(thisRoom.name, selection, 5) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+void startGame(struct Room* house){
+	struct Room currentRoom;
+	struct Room endRoom; 
+	int moves;
+	bool correctRoom;
+
+	size_t characters;
+	char *buffer;
+    size_t bufsize = 40;
+	buffer = malloc(bufsize * sizeof(char*));
+
+	currentRoom = start(house); 
+	endRoom = end(house);
+	
+	do {
+		
+		printf("CURRENT LOCATION: %s\n", currentRoom.name);
+		showConnections(currentRoom);	
+		printf("WHERE TO? >");
+		characters = getline(&buffer,&bufsize,stdin);
+		
+		while(!validChoice(currentRoom, buffer)){
+			printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n");
+			characters = getline(&buffer,&bufsize,stdin);
+		}
+
+		//if (validChoice(currentRoom, buffer))	{
+			printf("\nyes\n");
+		//}
+		//else{
+		//	printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n");
+		//}
+
+	} while (strncmp(currentRoom.type, "END_ROOM", 5) != 0);
+	
+}
+
 
 int getRowCount(char **info, int counter){
 	char * pch;
@@ -46,42 +127,98 @@ int getRowCount(char **info, int counter){
 			rowCount++;
 	}	
 	
-	rowCount -= 2; 
-	
 	return rowCount;
 }
 
-void cutName(char **info, int file, struct Room thisRoom){
+void getInformation(char **info, int file, char **roomName, char **roomType, struct Connection* connection, int rows){
+	char *name;
 
+	// Used to store the different connections
+	char connection1[30];
+	char connection2[30];
+	char connection3[30];
+	char connection4[30];
+	char connection5[30];
+	char connection6[30];
+	
+	// Store the last position with type
+	int lastType = rows - 1; 
+	
+	// Token to read each line
+	char *temp;
+	char *token;
+	token = strtok(info[file], "\n");
+	
+	int i;
+	for (i = 0; i < rows; ++i) {
+		temp = token;
+		
+		if (i == 0){
+			name = temp;
+		}
+		else if (i == 1){
+			sscanf(temp, "CONNECTION 1:  %[^\n]s", connection1);
+		}
+		else if (i == 2){
+			sscanf(temp, "CONNECTION 2:  %[^\n]s", connection2);
+		}
+		else if (i == 3){
+			sscanf(temp, "CONNECTION 3:  %[^\n]s", connection3);
+		}
+		else if (i == 4 && i != lastType){
+			sscanf(temp, "CONNECTION 4:  %[^\n]s", connection4);
+		}
+		else if (i == 5 && i != lastType){
+			sscanf(temp, "CONNECTION 5:  %[^\n]s", connection5);
+		}
+		else if (i == 6 && i != lastType){
+			sscanf(temp, "CONNECTION 6:  %[^\n]s", connection6);
+		}	
+		else if (i == lastType){
+			sscanf(temp, "ROOM TYPE:  %[^\n]s", roomType[file]);
+		}
+
+		token = strtok (NULL, "\n");
+	}
+		
+	// Copy name into room's name
+	strcpy(roomName[file], name);
+		
+	// Set each connection accordingly 
+	for (i = 0; i < lastType - 1; ++i){
+		if (i == 0)
+			strcpy(connection[i].conName, connection1);
+		if (i == 1)
+			strcpy(connection[i].conName, connection2);
+		if (i == 2)
+			strcpy(connection[i].conName, connection3);
+		if (i == 3)
+			strcpy(connection[i].conName, connection4);
+		if (i == 4)
+			strcpy(connection[i].conName, connection5);
+		if (i == 5)
+			strcpy(connection[i].conName, connection6);
+	}
 }
 
-void setRoom(struct Room* thisRoom, char **info, int counter){
-		char namer[30] = "";
-		int ret;
-//		char **connections;
-//		connections = malloc(rowCount * sizeof(char*));
-//		int i;
-//		for (i = 0; i < rowCount; ++i){
-//			connections[i] = malloc(25 * sizeof(char*));
-//		}
-		
-//		for (i = 0; i < rowCount; ++i)
-
-		ret = sscanf(info[counter] , " %[^\n]s", &namer);
-		thisRoom[counter].name = namer;
-
-//		int ret = sscanf(info[0], "%s%*[\n]", &name);
-		printf("Name: %s\n", namer);
-		
-//		int j;
-//		for(j = 0; j < rowCount; ++j){
-//			free(connections[j]);
-//		}
-//		free(connections);
+// Allocate memory to a char variable
+void initChar(char **type, int count, int size){
+	int i;
+	for (i = 0; i < count; ++i){
+		type[i] = malloc(size * sizeof(char*));
+	}
 }
 
 void print(struct Room* testRoom){
 	printf("NAMESS: %s\n", testRoom[1].name);
+}
+
+void freeChar(char **option, int count){
+    int i;
+	for(i = 0; i < count; ++i){
+		free(option[i]);
+	}
+	free(option);
 }
 
 int main(int argc, const char** argv)
@@ -94,25 +231,42 @@ int main(int argc, const char** argv)
 	int file_descriptor;     // Use to open up file
 	char readBuffer[300];
 	ssize_t nread;
-
+	int connectionCount;
+	
+	// Allocate memory for info
 	char **info;
 	info = malloc(7 * sizeof(char*));
-	int num;
-	for(num = 0; num < 7; ++num)
-		info[num] = malloc(300 * sizeof(char*));
-
+	initChar(info, 7, 400);
+	
+	// Allocate memory for rooms
 	struct Room* houseRooms;
 	houseRooms = malloc(7 * sizeof(struct Room));
-	for (num = 0; num < 7; ++num){
-		houseRooms[num].name = "";
-		houseRooms[num].type = "";
-	}
 	
+	// Allocate memory for connections
+	struct Connection* connectNames;
+	connectNames = malloc(6 * sizeof(struct Connection));
+	memset(connectNames, '\0', sizeof(connectNames));
+
+	// Allocate memory for temp room names
+	char **roomNames;
+	roomNames = malloc(7 * sizeof(char*));
+	initChar(roomNames, 7, 30);
+
+	// Allocate memory for temp room type
+	char **roomTypes;
+	roomTypes = malloc(7 * sizeof(char*));
+	initChar(roomTypes, 7, 40);
+	
+	// Allocate memory for temp room connections
+	char **connectionNames;
+	connectionNames = malloc(6 * sizeof(char*));
+	initChar(connectionNames, 6, 30);
+
 	int rowCount;
 
 	DIR* dirToCheck;           // Holds the directory we're starting in
 	struct dirent *fileInDir;  // Holds the current subdir of the starting dir
-	struct stat dirAttributes; // Holds information we've gained about subdir
+	struct stat dirAttributes; // Holds information we'oomTypeve gained about subdir
 
 	dirToCheck = opendir("."); // Open up the directory this program was run in
 
@@ -174,55 +328,42 @@ int main(int argc, const char** argv)
 			nread = read(file_descriptor, readBuffer, sizeof(readBuffer));
 			strcpy(info[counter], readBuffer);
 
+			// Calculate the number of rows in the file
+			rowCount = getRowCount(info, counter);
+			
+			// Calculate the number of connections in the file
+			// Subtract the name and type 
+			connectionCount = rowCount - 2;
+			houseRooms[counter].outboundConnectionCount = connectionCount;
+			
+			// Place file info in appropriate strings
+			getInformation(info, counter, roomNames, roomTypes, connectNames, rowCount);			
+			
+			houseRooms[counter].name = roomNames[counter];	
+			houseRooms[counter].type = roomTypes[counter];
+
+			int t;
+			for (t = 0; t < connectionCount; ++t)
+				strcpy(houseRooms[counter].diffConnections[t].conName, connectNames[t].conName);
+			
 			counter++;
 			
 			// Close file
 			close(file_descriptor);
 		}
-//		printf("name: %s\n", houseRooms[2].name);
    }
-	char name[25];
-	int ret;
-	int count; 
-	char *pch;
-	for (count = 0; count < 7; count++){
-		printf("%s\n", info[count]);
-		
-		houseRooms[count].outboundConnectionCount = getRowCount(info, count);
 
-		ret = sscanf(info[count] , " %[^\n]s", name);
-		houseRooms[count].name = name;
-		
-		pch=strchr(info[count],':');
-		while (pch != NULL) {
-			printf ("found at %d\n",pch-info[count]+1);
-		    pch=strchr(pch+1,':');
-		}
-
-		printf("name: %s\n", houseRooms[count].name);
-		int t;
-		for (t = 0; t < houseRooms[count].outboundConnectionCount; ++t){
-//			printf("num: %d\n", t);
-		}
-
-		//cutName(info, count, houseRooms[count]);
-		//printf("name: %s\n", houseRooms[count].name);
-	}
-
-
-//	print(houseRooms);
-//	printf("name: %s\n", houseRooms[2].name);
+	startGame(houseRooms);
 
 	closedir(latestDir);
 
 	// Free allocated memory for Room structures
 	free(houseRooms);
-	
-	int j;
-	for(j = 0; j < 7; ++j){
-		free(info[j]);
-	}
-	free(info);
+	free(connectNames);
+	freeChar(connectionNames, 6);
+	freeChar(info, 7);
+	freeChar(roomNames, 7);
+	freeChar(roomTypes, 7);
 
 	return 0; 
 }
