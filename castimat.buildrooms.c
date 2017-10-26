@@ -2,7 +2,9 @@
  * CS 344 Assignment 2
  * Name: Matthew Castillo
  * Date: 10/22/17
- * Description: 
+ * Description: Build 7 rooms that are connedctiont to one another
+ * Place the room's name, title and different connections in separate files
+ * The directory created will be specific to the process id
 */
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,8 +26,17 @@ struct Room {
 	struct Room* outboundRoomConnection[6]; 
 };
 
+// Initialize the room structure so that the info will be placed 
+// appropriately in a file
 void initRoomInfo(char **roomInfo, struct Room* thisRoom){
 	char connectionCount[20]; 
+	
+	// Loop through each room
+	// File layout
+	// ROOM NAME: <Room Name>
+	// CONNECTION #: <Room connected to>
+	// CONNECTION #: <Room connected to>
+	// FILE TYPE : <START, MID, or END> 
 	int i;
 	for (i = 0; i < 7; ++i){
 		roomInfo[i] = malloc(5000 * sizeof(char*));
@@ -68,7 +79,7 @@ void initRoomName(char **roomName){
 		roomName[i] = malloc(20 * sizeof(char*));
 	}
 
-	// Place name of rooms in arrayi
+	// Place name of rooms in array
 	strcpy(roomName[0], "Whacky Room");
 	strcpy(roomName[1], "Jumpy Room");
 	strcpy(roomName[2], "Coffee Room");
@@ -273,6 +284,8 @@ void AddRandomConnection(struct Room* houseRooms)
 		randomRoomA = rand() % 7;
 		A = houseRooms[randomRoomA];
 		
+		// If connection can be added break from loop
+		// check if it does not have more than 6 connections
         if (CanAddConnectionFrom(A))
 		    break;
     }
@@ -287,21 +300,10 @@ void AddRandomConnection(struct Room* houseRooms)
 	ConnectRoom(houseRooms, randomRoomA, randomRoomB);  // Adds connection between rooms 
 }
 
-void PrintRoomOutboundConnections(struct Room* input)
-{
-	printf("The rooms connected to (%s/%s) count:%d are:\n", input->name, input->type, input->outboundConnectionCount);
-
-    int i;
-    for (i = 0; i < input->outboundConnectionCount; i++)
-	    printf("  (%s/%s)\n", input->outboundRoomConnection[i]->name, input->outboundRoomConnection[i]->type);
-
-	printf("\n");
-	return;
-}
-
+// Create files and place into the appropriate directory
 void createFiles(struct Room* differentRooms, char* directory){
-	int file_descriptor;
-	char file[7][255];
+	int file_descriptor;      // hold file 
+	char file[7][255];        
 	ssize_t nread, nwritten;
 	char readBuffer[32];
 	int files = 7;
@@ -314,29 +316,35 @@ void createFiles(struct Room* differentRooms, char* directory){
 	
 	int i;
 	for (i = 0; i < files; ++i){
+		// begin each name of file with /file 
+		// then add an id from 0 to 6
 	    strcpy(fileName[i], "/file");
 		sprintf(fileID, "%d", i);
 		
 		strcat(fileName[i], fileID);
 		
+		// Concatanate the file name to the name of the directory
 		strcpy(file[i], directory);
 		strcat(file[i], fileName[i]);
 		
+		// place extension for each file
 		strcat(file[i], ".txt");
-
+		
+		// set the file so that the user may read and write to them
 		file_descriptor = open(file[i], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-
+		
+		// validate the file were created else break out of the program with an error
 		if (file_descriptor == -1)	{
 			printf("Hull breach - open() failed on \"%s\"\n", file[0]);
 			perror("In main()");
 			exit(1);
 		}
-
+			// Write the information into the files
 			nwritten = write(file_descriptor, roomInfo[i], strlen(roomInfo[i]) * sizeof(char)); 
 		}
-
+	
+	// Free memory
 	freeOptions(roomInfo, 7);
-
 }
 
 int main() {
@@ -363,29 +371,23 @@ int main() {
 	char **roomType;           
 	roomType = malloc(3 * sizeof(char*));
 	initRoomType(roomType);
-
+	
+	// Initialize connections
  	initRoomConnectionCount(houseRooms);
 	
+	// Set the room names
 	setRoomName(houseRooms, roomNames);
 	
+	// set the room types
 	setRoomType(houseRooms, roomType);
-
-//	int count = 0; 
-//	for (count = 0; count < 7; ++count) {
-//		printf("Room Name %d: %s\n", count, houseRooms[count].name); 
-//		printf("Room Type %d: %s\n", count, houseRooms[count].type);
-//		printf("Room Connection %d: %d\n\n", count, houseRooms[count].outboundConnectionCount);
-//	}
 
 	// Convert process ID into string and concatenate into folder name
 	sprintf(tempID, "%d", processID);
 	strcpy(folderName, "castimat.rooms.");
 	strcat(folderName, tempID);
     
+	// create directory with appropriate permissions
 	int result = mkdir(folderName, 0755);
-
-	//printf("Complete: %d\n", result);
-	//printf("My process ID : %d\n", processID);
 
 	// Create all connections in graph
 	while (IsGraphFull(houseRooms) == false)
@@ -393,13 +395,8 @@ int main() {
 		  AddRandomConnection(houseRooms);
 	}
 	
-	//	for (count = 0; count < 7; ++count)
-	//		PrintRoomOutboundConnections(&houseRooms[count]);
-	
+	// Write the room information into individual files
 	createFiles(houseRooms, folderName);
-
-	// Delete folder (Create loop to delete all files within folder first openDir() and closeDir())
-	//	rmdir(folderName);
 	
 	// Free allocated memory
 	free(houseRooms);

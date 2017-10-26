@@ -1,8 +1,9 @@
 /*
-* CS 261 Assignment 4
+* CS 344 Assignment 
 * Name: Matthew Castillo
 * Date: 10/25/17
-* Description: 
+* Description: Activate the Adventure Game where the user
+* selects which room to go into until they find the exit.
 */ 
 
 #include <stdlib.h>
@@ -17,6 +18,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <pthread.h>
+
+#define NUM_THREAD	2
 
 typedef enum {false, true} bool;
 
@@ -30,6 +34,47 @@ struct Room {
     int outboundConnectionCount;
     struct Connection diffConnections[6];
 };
+
+pthread_mutex_t myMutex = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_lock(myMutex);
+
+// Create file to hold the time
+char* createTime(){
+	ssize_t nwritten, nread;
+	char timeFile[] = "currentTime.txt";
+	int file_descriptor;
+	char buffer[255];
+	time_t currentTime;
+	struct tm *localTime1;
+	char newBuffer[50];
+	
+	currentTime = time (NULL);
+	
+	// get local time
+	localTime1 = localtime (&currentTime);
+	
+	// write time in format: 1:03pm, Tuesday, September 13, 2016
+	strftime (buffer, 255, "%I:%M %p, %A, %B %d, %Y\n", localTime1);
+	
+	file_descriptor = open(timeFile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+
+	if (file_descriptor == -1)	{
+		printf("Hull breach - open() failed on \"%s\"\n", timeFile);
+		perror("In main()");
+		exit(1);
+	}
+
+	nwritten = write(file_descriptor, buffer, strlen(buffer) * sizeof(char));
+	
+	memset(newBuffer, '\0', sizeof(newBuffer));
+	lseek(file_descriptor, 0, SEEK_SET);
+	nread = read(file_descriptor, newBuffer, sizeof(newBuffer));
+
+	printf("\n%s\n", newBuffer);
+
+}
+
+
 
 // Set the first room as the starting room
 struct Room start (struct Room* thisRoom){
@@ -51,6 +96,17 @@ struct Room end (struct Room* thisRoom){
 	}
 }
 
+// Return the room that the user selected to enter
+struct Room newRoom (struct Room* thisRoom, char* selection){
+	int i;
+	for (i = 0; i < 7; i++) {
+		if(strncmp(thisRoom[i].name, selection, 5) == 0){
+			return thisRoom[i];
+		}
+	}
+}
+
+// Show the other rooms that the user is able to enter from the room they are in
 void showConnections(struct Room thisRoom){
 	int last = thisRoom.outboundConnectionCount - 1;
 
@@ -65,23 +121,40 @@ void showConnections(struct Room thisRoom){
 	}
 }
 
+// Return true if the name of the room is equal to what the user enetered 
 bool validChoice(struct Room thisRoom, char* selection){
 	int i;
-	printf("select: %s\n", selection);
+	
 	for (i = 0; i < thisRoom.outboundConnectionCount; ++i){
-		if (strncmp(thisRoom.name, selection, 5) == 0)
+		if (strncmp(thisRoom.diffConnections[i].conName , selection, 5) == 0){
 			return true;
+		}
 	}
-
 	return false;
 }
 
+// Return the time if the user choose time else return that the user 
+// entered the wrong information
+void isTime(char *selection){
+	
+	if(strncmp(selection, "time", 5) == 1){
+		createTime();
+	}
+	else{
+		printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
+	}
+ 
+}
+
+// Begin the game and continue until the user find the end of the roomnwritten = write(file_descriptor, roomInfo[i], strlen(roomInfo[i]) * sizeof(char));
+// Will keep track of valid moves and if user would like to know the time
 void startGame(struct Room* house){
 	struct Room currentRoom;
 	struct Room endRoom; 
-	int moves;
-	bool correctRoom;
-
+	int moves = 0;
+	bool correctRoom = false;
+	char pathToVictory[1000];
+	strcpy(pathToVictory, "");
 	size_t characters;
 	char *buffer;
     size_t bufsize = 40;
@@ -90,46 +163,65 @@ void startGame(struct Room* house){
 	currentRoom = start(house); 
 	endRoom = end(house);
 	
+	// Loop through the game until the user finds the exit
 	do {
-		
-		printf("CURRENT LOCATION: %s\n", currentRoom.name);
-		showConnections(currentRoom);	
-		printf("WHERE TO? >");
-		characters = getline(&buffer,&bufsize,stdin);
-		
-		while(!validChoice(currentRoom, buffer)){
-			printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n");
+			// Loop through question if the user does not enter a 
+			// correct response or if they ask for the time
+		do {
+			
+			// Display current position and room choices
+			printf("CURRENT LOCATION: %s\n", currentRoom.name);
+			showConnections(currentRoom);	
+			printf("WHERE TO? >");
 			characters = getline(&buffer,&bufsize,stdin);
-		}
+			
+			correctRoom = validChoice(currentRoom, buffer);
+			
+			if (!correctRoom)
+				isTime(buffer);
 
-		//if (validChoice(currentRoom, buffer))	{
-			printf("\nyes\n");
-		//}
-		//else{
-		//	printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n");
-		//}
+		} while(!correctRoom);
+	    	
+		moves += 1; // Only increment move if correct room was chosen
+
+		printf("\n");
+
+		// Set new room to the room that was chosen
+		currentRoom = newRoom(house, buffer);
+		
+		// Keep track of the path that the user has chosen
+		strcat(pathToVictory, currentRoom.name);
+		strcat(pathToVictory, "\n");
 
 	} while (strncmp(currentRoom.type, "END_ROOM", 5) != 0);
-	
+
+	// Inform user that they finished the game
+	// display the number of moves and their path
+	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
+	printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", moves);
+	printf("%s", pathToVictory);
+
+	free(buffer);
 }
 
-
+// Returns the number of row that are in the file
 int getRowCount(char **info, int counter){
-	char * pch;
+	char * sample;
 	int rowCount = 1;
 	
 	// get row count
-	pch=strchr(info[counter],'\n');
+	sample=strchr(info[counter],'\n');
 
-	while (pch!=NULL)
-	{
-		if(pch=strchr(pch+1,'\n'))
+	while (sample != NULL)	{
+		if(sample = strchr(sample + 1,'\n'))
 			rowCount++;
 	}	
 	
 	return rowCount;
 }
 
+// Get the necessary information for the room from within the file
+// Search through each row and get the info
 void getInformation(char **info, int file, char **roomName, char **roomType, struct Connection* connection, int rows){
 	char *name;
 
@@ -144,11 +236,13 @@ void getInformation(char **info, int file, char **roomName, char **roomType, str
 	// Store the last position with type
 	int lastType = rows - 1; 
 	
-	// Token to read each line
+	// Token to read each linenwritten = write(file_descriptor, roomInfo[i], strlen(roomInfo[i]) * sizeof(char));
 	char *temp;
 	char *token;
 	token = strtok(info[file], "\n");
 	
+	// Go through the number of row that are in the file
+	// select the valid informationprintf("\nHUH? I DON'T UNDEnwritten = write(file_descriptor, roomInfo[i], strlen(roomInfo[i]) * sizeof(char));RSTAND THAT ROOM. TRY AGAIN.\n\n");
 	int i;
 	for (i = 0; i < rows; ++i) {
 		temp = token;
@@ -184,7 +278,7 @@ void getInformation(char **info, int file, char **roomName, char **roomType, str
 	// Copy name into room's name
 	strcpy(roomName[file], name);
 		
-	// Set each connection accordingly 
+
 	for (i = 0; i < lastType - 1; ++i){
 		if (i == 0)
 			strcpy(connection[i].conName, connection1);
@@ -209,10 +303,7 @@ void initChar(char **type, int count, int size){
 	}
 }
 
-void print(struct Room* testRoom){
-	printf("NAMESS: %s\n", testRoom[1].name);
-}
-
+// Free memory from char
 void freeChar(char **option, int count){
     int i;
 	for(i = 0; i < count; ++i){
@@ -221,7 +312,7 @@ void freeChar(char **option, int count){
 	free(option);
 }
 
-int main(int argc, const char** argv)
+int main()
 {
 	int  newestDirTime = -1; // Modified timestamp of newest subdir examined
   	char targetDirPrefix[32] = "castimat.rooms."; // Prefix we're looking for
@@ -233,7 +324,7 @@ int main(int argc, const char** argv)
 	ssize_t nread;
 	int connectionCount;
 	
-	// Allocate memory for info
+	// Allocate memory to hold information from read file  
 	char **info;
 	info = malloc(7 * sizeof(char*));
 	initChar(info, 7, 400);
@@ -323,7 +414,7 @@ int main(int argc, const char** argv)
 			lseek(file_descriptor, 11, SEEK_SET);	
 			
 			memset(readBuffer, '\0', sizeof(readBuffer));
-			
+
 			// Copy information from the files into a string
 			nread = read(file_descriptor, readBuffer, sizeof(readBuffer));
 			strcpy(info[counter], readBuffer);
@@ -339,25 +430,30 @@ int main(int argc, const char** argv)
 			// Place file info in appropriate strings
 			getInformation(info, counter, roomNames, roomTypes, connectNames, rowCount);			
 			
+			// Set the rooms name and type
 			houseRooms[counter].name = roomNames[counter];	
 			houseRooms[counter].type = roomTypes[counter];
-
+			
+			// Set the rooms connections
 			int t;
 			for (t = 0; t < connectionCount; ++t)
 				strcpy(houseRooms[counter].diffConnections[t].conName, connectNames[t].conName);
 			
 			counter++;
+		
 			
 			// Close file
 			close(file_descriptor);
 		}
-   }
-
-	startGame(houseRooms);
-
+   } 
+   
+ 	// Start the game
+		startGame(houseRooms);
+	
+	// Close the directory
 	closedir(latestDir);
 
-	// Free allocated memory for Room structures
+	// Free allocated memory 
 	free(houseRooms);
 	free(connectNames);
 	freeChar(connectionNames, 6);
