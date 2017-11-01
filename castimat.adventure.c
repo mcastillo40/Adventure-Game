@@ -136,8 +136,11 @@ bool validChoice(struct Room thisRoom, char* selection){
 // Return the time if the user choose time else return that the user 
 // entered the wrong information
 void isTime(char *selection){
+	printf("THIS is selection: %s\n",selection);	
 	
-	if(strncmp(selection, "time", 5) == 1){
+	
+
+	if(strncmp(selection, "time", 5)){
 		createTime();
 	}
 	else{
