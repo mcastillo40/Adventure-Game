@@ -109,12 +109,12 @@ struct Room newRoom (struct Room* thisRoom, char* selection){
 // Show the other rooms that the user is able to enter from the room they are in
 void showConnections(struct Room thisRoom){
 	int last = thisRoom.outboundConnectionCount - 1;
-
+	
 	int i;
 	for (i = 0; i < thisRoom.outboundConnectionCount; ++i){
 		if (i == 0)
 			printf("POSSIBLE CONNECTIONS: %s,", thisRoom.diffConnections[i].conName);
-		else if (i < last - 1)
+		else if (i < last)
 			printf(" %s,", thisRoom.diffConnections[i].conName);
 		else if (i == last)
 			printf(" %s.\n", thisRoom.diffConnections[i].conName);
